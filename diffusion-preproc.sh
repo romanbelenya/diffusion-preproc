@@ -77,7 +77,7 @@ echo start preprocessing?
 select answer in Yes No; do
     case $answer in 
         Yes) 
-            echo "let's go!";;
+            echo "let's go!" && break;;
         No) 
             exit 1;;
     esac
@@ -169,6 +169,7 @@ time topup \
     --fout=$topup_field \
     --logout="${topup_dir}/topup.log" \
     --nthr=$NTHR \
+    --scale=1 \
     --verbose
 
 
@@ -230,12 +231,13 @@ time eddy_cuda10.2 \
     --s2v_niter=10 \
     --s2v_lambda=1 \
     --s2v_interp=trilinear \
-    # --slspec=$slices \
-    --json="${AP_BASENAME}.json" \
+    --slspec=$slices \
     --nthr=$NTHR \
+    --estimate_move_by_susceptibility \
     --data_is_shelled \
     --cnr_maps \
     --very_verbose
+#     --json="${AP_BASENAME}.json" \
 
 # Average bvals and bvecs
 # python $SRC/average_bvecs.py -b $bvals -v $bvecs_rot -o "${eddy_dir}/average"
