@@ -13,7 +13,7 @@ usage() {
 EOF
 }
 
-while getopts a:p:o:n opt; do 
+while getopts a:p:o:n:f opt; do 
     case "$opt" in 
         a)
         AP_BASENAME=$OPTARG;;
@@ -23,6 +23,8 @@ while getopts a:p:o:n opt; do
         OUT=$OPTARG;;
         n)
         NTHR=$OPTARG;;
+        f)
+        PHANTOM=$OPTARG;;
         h)
         usage && exit 0;;
 
@@ -50,7 +52,7 @@ echo NTHR:        $NTHR
 
 ### File checks
 # Check that the output dir is not there
-# [ -d $OUT ] && echo "$OUT already exists!" && exit 1
+[ -d $OUT ] && echo "$OUT already exists!" && exit 1
 
 # Check if all files are there
 basenames=( $AP_BASENAME $PA_BASENAME )
@@ -63,7 +65,7 @@ for basename in ${basenames[@]}; do
 done
 
 start_time=$(date)
-# mkdir $OUT && chmod 777 $OUT
+mkdir $OUT && chmod 777 $OUT
 
 ### Check if the scans parameters match
 echo
@@ -185,7 +187,12 @@ b0_topup_img_mean_bcor="${topup_dir}/b0_topup_img_mean_bcor.nii.gz"
 N4BiasFieldCorrection -d 3 -i $b0_topup_img_mean -o $b0_topup_img_mean_bcor -v
 
 brainmask="${topup_dir}/b0_topup_img_mean_bcor_brainmask.nii.gz"
-mri_synthstrip -i $b0_topup_img_mean_bcor -m $brainmask
+if [[ $PHANTOM -eq 1 ]]; then
+    echo "running for phantom"
+    3dAutomask -prefix $brainmask $b0_topup_img_mean_bcor
+else
+    mri_synthstrip -i $b0_topup_img_mean_bcor -m $brainmask
+fi
 
 
 ### Run eddy current correction - takes ~3 hours on GPU
@@ -221,7 +228,7 @@ time eddy_cuda10.2 \
     --out=$eddy_basename \
     --flm=quadratic \
     --interp=spline \
-    --resamp=lsr \ # jac
+    --resamp=lsr \
     --lsr_lambda=0.1 \
     --nvoxhp=10000 \
     --ff=10 \
@@ -232,12 +239,12 @@ time eddy_cuda10.2 \
     --s2v_lambda=1 \
     --s2v_interp=trilinear \
     --slspec=$slices \
-    --nthr=$NTHR \
     --estimate_move_by_susceptibility \
     --data_is_shelled \
     --cnr_maps \
     --very_verbose
-#     --json="${AP_BASENAME}.json" \
+
+#     --json="${AP_BASENAME}.json" - creates the slspec automatically, but does not save it  
 
 # Average bvals and bvecs
 # python $SRC/average_bvecs.py -b $bvals -v $bvecs_rot -o "${eddy_dir}/average"
