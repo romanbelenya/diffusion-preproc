@@ -7,7 +7,7 @@ import json
 from collections.abc import Generator
 
 
-def main(ap_basename: str, pa_basename: str) -> Generator[tuple, None, None]:
+def main(ap_basename: str, pa_basename: str, different: bool = False) -> Generator[tuple, None, None]:
 
     ap = nib.load(ap_basename + ".nii.gz")
     pa = nib.load(pa_basename + ".nii.gz")
@@ -25,10 +25,7 @@ def main(ap_basename: str, pa_basename: str) -> Generator[tuple, None, None]:
 
     in_arrays = {
         "affines": [ap.affine, pa.affine],
-        "bvals": [ap_bvals, pa_bvals],
-        "bvecs": [ap_bvecs, pa_bvecs],
         "ShimSetting": [ap_sidecar["ShimSetting"], pa_sidecar["ShimSetting"]],
-        "SliceTiming": [ap_sidecar["SliceTiming"], pa_sidecar["SliceTiming"]],
         "EchoTime": [ap_sidecar["EchoTime"], pa_sidecar["EchoTime"]],
         "RepetitionTime": [ap_sidecar["RepetitionTime"], pa_sidecar["RepetitionTime"]],
         "FlipAngle": [ap_sidecar["FlipAngle"], pa_sidecar["FlipAngle"]],
@@ -48,6 +45,11 @@ def main(ap_basename: str, pa_basename: str) -> Generator[tuple, None, None]:
         "PixelBandwidth": [ap_sidecar["PixelBandwidth"], pa_sidecar["PixelBandwidth"]],
         "DwellTime": [ap_sidecar["DwellTime"], pa_sidecar["DwellTime"]],
     }
+    
+    if not different:
+        in_arrays["bvecs"] = [ap_bvecs, pa_bvecs]
+        in_arrays["bvals"] = [ap_bvals, pa_bvals],
+        in_arrays["SliceTiming"] = [ap_sidecar["SliceTiming"], pa_sidecar["SliceTiming"]],
 
     for key, value in in_arrays.items():
         value = np.array(value)
@@ -64,11 +66,12 @@ def main(ap_basename: str, pa_basename: str) -> Generator[tuple, None, None]:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--ap_basename", help="Basename of the AP scan", type=str)
-    parser.add_argument("-p", "--pa_basename", help="Basename of the PA scan", type=str)
+    parser.add_argument("-a", "--ap_basename", type=str, required=True, help="Basename of the AP scan")
+    parser.add_argument("-p", "--pa_basename", type=str, required=True, help="Basename of the PA scan")
+    parser.add_argument("-d", "--different", action="store_true", help="AP and PA are different, i.e. only b0s in PA")
     args = parser.parse_args()
 
-    comparisons = main(args.ap_basename, args.pa_basename)
+    comparisons = main(args.ap_basename, args.pa_basename, args.different)
 
     print(f"Comparing {args.ap_basename} with {args.pa_basename}\n")
     for name, comparison in comparisons:
