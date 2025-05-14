@@ -7,21 +7,21 @@ SRC=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 usage() {
     cat <<EOF
-    Usage: $(basename $0) [-a <AP basename>] [-p <PA basename>] [-o <output directory>] [-n <threads>] [-g <phantom>] [-e <path to Python exec>] [-s <stage number>]
+Usage: $(basename $0) [-a <AP basename>] [-p <PA basename>] [-o <output directory>] [-n <threads>] [-g <phantom>] [-e <path to Python exec>] [-s <stage number>]
 EOF
 }
 
 help() {
     cat <<EOF
-    Usage: $(basename $0) [-a <AP basename>] [-p <PA basename>] [-o <output directory>] [-n <threads>] [-g <phantom>] [-e <path to Python exec>] [-s <stage number>]
+Usage: $(basename $0) [-a <AP basename>] [-p <PA basename>] [-o <output directory>] [-n <threads>] [-g <phantom>] [-e <path to Python exec>] [-s <stage number>]
 
-    -a: basename of the series acquired in anterior to posterior phase-encoding direction (without .json or .nii.gz)
-    -p: basename of the series acquired in posterior to anterior phase-encoding direction
-    -o: path to the output directory
-    -n: number of threads. Optional. Default=5
-    -g: this is a phantom scan. Runs 3dAutomask for "brain" extraction instead of mri_synthstrip
-    -e: path to Python executable. Default=standard python
-    -s: stage number after which the script will stop. Optional. 1=preparing and file checks, 2=preprocessing, 3=topup, 4=eddy, 5=dti. Default=5
+-a: basename of the series acquired in anterior to posterior phase-encoding direction (without .json or .nii.gz)
+-p: basename of the series acquired in posterior to anterior phase-encoding direction
+-o: path to the output directory
+-n: number of threads. Optional. Default=5
+-g: this is a phantom scan. Runs 3dAutomask for "brain" extraction instead of mri_synthstrip
+-e: path to Python executable. Default=standard python
+-s: stage number after which the script will stop. Optional. 1=preparing and file checks, 2=preprocessing, 3=topup, 4=eddy, 5=dti. Default=5
 EOF
 }
 
@@ -94,7 +94,7 @@ echo "PA_BASENAME: ${PA_BASENAME}"
 echo "OUT:         ${OUT}"
 echo "NTHR:        ${NTHR}"
 echo "PHANTOM:     ${PHANTOM}"
-echo "PYTHON:      ${PYTHON}}"
+echo "PYTHON:      ${PYTHON}"
 echo "-----------------------------\n\n"
 
 ####################################################################################
@@ -135,7 +135,7 @@ start_time=$(date)
 if [[ -d $OUT ]]; then
     echo "not creating ${OUT}... already exists"
 else
-    mkdir $OUT && chmod 777 $OUT
+    mkdir -p $OUT && chmod 777 $OUT
 fi
 
 ### Adjust the small difference between the affines
