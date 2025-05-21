@@ -25,7 +25,7 @@ Usage: $(basename $0) [-a <AP basename>] [-p <PA basename>] [-o <output director
 EOF
 }
 
-while getopts a:p:o:n:g:e:h opt; do
+while getopts a:p:o:n:g:e:s:h opt; do
     case "$opt" in
         a)
         AP_BASENAME=$OPTARG
@@ -79,7 +79,7 @@ if [[ -z $STAGE ]]; then
     STAGE=5
 fi
 
-
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$NTHR
 
 
 
@@ -259,7 +259,7 @@ else
 
 fi
 
-echo "generated acqparams file:"
+echo "acqparams file:"
 cat $acqparams
 echo
 
@@ -364,7 +364,7 @@ else
         --acqp=$acqparams \
         --topup=$topup_basename \
         --bvecs=$bvecs \
-        --bvals=$bvals \
+        --bvals=$bvals_rounded \
         --out=$eddy_basename \
         --data_is_shelled \
         --flm=quadratic \
@@ -383,15 +383,37 @@ else
         --cnr_maps \
         --very_verbose \
         --resamp=lsr 
+
+        # here, rename the resampled output as eddy_lsr.nii.gz and combine the resampled eddy file twice 
+        eddy_lsr="${eddy_basename}_lsr.nii.gz"
+        echo "moving ${eddy_basename}.nii.gz to $eddy_lsr and combining $eddy_lsr twice to ${eddy_basename}.nii.gz..."
+        mv "${eddy_basename}.nii.gz" $eddy_lsr
+        fslmerge -t "${eddy_basename}.nii.gz" $eddy_lsr $eddy_lsr
 fi
 
-# If running with --resamp=slr option:
-bvals_lsr="${AP_BASENAME}.bval" # only from the first part
-bvecs_lsr="${eddy_basename}.eddy_rotated_bvecs_for_SLR"
-# otherwsie:
-# bvals_lsr=$bvals # only from the first part
-# bvecs_lsr="${eddy_basename}.eddy_rotated_bvecs"
 
+####################################################################################
+################### STAGE 4¾ - bias field correction ###################
+####################################################################################
+echo
+echo "================ Correcting bias... ================"
+echo
+
+dwi_preproc="${eddy_basename}_lsr.nii.gz"
+dwi_preproc_bcor="${dwi_preproc%.nii.gz}_bcor.nii.gz"
+bias="${dwi_preproc%.nii.gz}_bias.nii.gz"
+
+if [[ -f "$dwi_preproc_bcor" ]]; then
+    echo "skipping... ${dwi_preproc_bcor} already exists"
+else
+    N4BiasFieldCorrection \
+        --image-dimensionality 4 \
+        --input-image $dwi_preproc \
+        --output [ $dwi_preproc_bcor,$bias ] \
+        --rescale-intensities \
+        --verbose
+        # --mask-image $brainmask \
+fi
 
 ### Eddy quality check
 echo
@@ -402,15 +424,21 @@ qc_dir="${OUT}/eddyqc"
 if [[ -d $qc_dir ]]; then
     echo "skipping... ${qc_dir} - already exists"
 else
+    echo "Running the quality check on twice the resampled data"
+
+    bvecs_rot="${eddy_basename}.eddy_rotated_bvecs"
+
     eddy_quad \
         $eddy_basename \
         --eddyIdx=$index \
         --eddyParams=$acqparams \
         --mask=$brainmask \
-        --bvals=$bvals_lsr \
+        --bvals=$bvals_rounded \
+        --bvecs=$bvecs_rot \
         --field=$topup_field \
         --slspec=$slices \
-        --output=$qc_dir
+        --output=$qc_dir \
+        --verbose
 fi
 
 if [[ $STAGE -eq 4 ]]; then
@@ -432,7 +460,10 @@ dti_dir="${OUT}/dti"
 mkdir $dti_dir
 
 dti_basename="${dti_dir}/dti"
-dwi_preproc="${eddy_basename}.nii.gz"
+dwi_preproc="${eddy_basename}_lsr_bcor.nii.gz"
+bvecs_lsr="${eddy_basename}.eddy_rotated_bvecs_for_SLR"
+bvals_lsr="${AP_BASENAME}.bval" # only from the first part
+
 time dtifit \
     --data=$dwi_preproc \
     --mask=$brainmask \

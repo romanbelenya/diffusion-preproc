@@ -48,8 +48,8 @@ def main(ap_basename: str, pa_basename: str, different: bool = False) -> Generat
     
     if not different:
         in_arrays["bvecs"] = [ap_bvecs, pa_bvecs]
-        in_arrays["bvals"] = [ap_bvals, pa_bvals],
-        in_arrays["SliceTiming"] = [ap_sidecar["SliceTiming"], pa_sidecar["SliceTiming"]],
+        in_arrays["bvals"] = [ap_bvals, pa_bvals]
+        in_arrays["SliceTiming"] = [ap_sidecar["SliceTiming"], pa_sidecar["SliceTiming"]]
 
     for key, value in in_arrays.items():
         value = np.array(value)
